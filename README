@@ -1,0 +1,32 @@
+# Author : Abhigna N
+# Copyright (c) 2011, Abhigna N
+# http://www.opensource.org/licenses/bsd-license.php
+# Version 0.2
+# Tool which generates a simple html report file
+
+
+
+##Usage: report.py -f FILE -p FILE
+
+Generate a report file using sis.Run without arguments for prompt mode.
+
+Options:
+  --version             show program's version number and exit
+  -h, --help            show this help message and exit
+  -r FILE, --report=FILE
+                        write report to FILE
+
+  Userdetails file:
+    Format of file , the userdetails seperated by ':' on different lines
+
+    -u FILE, --userdetails=FILE
+                        file containing userdetails
+
+
+##TODO
+# - Correct issues with certain subject tables 
+# - Display error when the sis page does not display data
+#
+#
+
+

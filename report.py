@@ -9,6 +9,7 @@
 
 import re,urllib2,threading
 
+STDOUT = False
 
 #utility funtions
 def filterl(pat,lst,rep=''):
@@ -30,9 +31,6 @@ def parse_file(fl):
 def gen_table(th,ar,rowa,rowb,caption=None,date=None,changed=False):
                        
 	res =["<table>"]
-
-        
-
         dstr = ""
         if changed and date:
                 dstr="<p class='small'>Changed since %s</p>" % date 
@@ -85,7 +83,12 @@ def login(details):
         data ='txtModule=login&txtHandler=loginHandler&txtAction=login&txtSubAction=Submit&txtUserName=%(username)s&txtPassword=%(password)s&Submit=Submit'
         req = urllib2.Request(url,data % details)
        	resp = urllib2.urlopen(req)
-     	resp.read()
+        rdata = resp.read()
+        err_pat = re.compile(r'Invalid')
+        status = re.search(err_pat,rdata)
+        if status :
+                print 'Invalid ID or Password'
+                raise SystemExit
         return resp.headers.get('Set-Cookie')
         
         
@@ -98,18 +101,17 @@ def logout(cookie):
         rsl.read()
 
 
-class Page:
+class Page(object):
         changed = None
         ltime = None
         data = None 
         name = None
         url = None
+        pgs = None
         def process(self,pg,rqh):
                 pass
         def report(self):
                 pass
-        
-       
         
 
 
@@ -186,6 +188,9 @@ class MarksTablePage(Page):
         def report(self):
                 rep = []
                 i = 0
+                if not self.pgs:
+                        return self.report_old()
+
                 for j in self.pgs:
                         s = filter(lambda x : x!='Obtained' , j.data)
                         #print s,len(s)
@@ -202,7 +207,7 @@ class MarksTablePage(Page):
                         
                         
         def report_old(self):
-                return gen_table(['Slno','Subject Name','Subject Code','Test Avg.','Assignment Average'],map(trans,self.data),5,"row-a","row-b",skip=5,caption="Marks Table")
+                return gen_table(['Slno','Subject Name','Subject Code','Test Avg.','Assignment Average'],map(trans,self.data),"row-a","row-b",caption=self.name,date=self.ltime)
                 
         
 
@@ -267,8 +272,12 @@ class RequestHandler:
                 
                 req = urllib2.Request(url)
                 req.add_header('Cookie',cookie)
-                pg.process(urllib2.urlopen(req).read(),self)
-                print "Page received",pg.name
+                try:
+                        pg.process(urllib2.urlopen(req).read(),self)
+                except:
+                        pass
+                if not STDOUT:
+                        print "Page received",pg.name
                 
         def fetch_all_seq(self):
                 for pg in pgs:
@@ -356,15 +365,36 @@ class SIS:
                 self.rqh = rqh
                 self.details=details
 
-        def get_all(self):
-                print "logging in..."
+        def get_all_plain(self):
+                if not STDOUT:
+                        print "logging in..."
                 try :
                         cookie = login(self.details)
-                        print "Cookie " ,cookie
+                        if not STDOUT :
+                                 print "Cookie " ,cookie
                         try :
                             self.rqh.pgs = [AttendancePage(),MarksTablePage(),TimeTablePage()]
                             self.rqh.cookie = cookie
                             self.rqh.fetch_all_par()
+                           
+                        finally:
+                            logout(cookie)
+                except urllib2.URLError as e:
+                        print "ERROR " , e.reason
+                        raise SystemExit
+
+        def get_all(self):
+                if not STDOUT:
+                        print "logging in..."
+                try :
+                        cookie = login(self.details)
+                        if not STDOUT :
+                                 print "Cookie " ,cookie
+                        try :
+                            self.rqh.pgs = [AttendancePage(),MarksTablePage(),TimeTablePage()]
+                            self.rqh.cookie = cookie
+                            self.rqh.fetch_all_par()
+                           
                         finally:
                             logout(cookie)
                 except urllib2.URLError as e:
@@ -374,14 +404,21 @@ class SIS:
                 db = DB('sis')
                 db.open()
                 db.get_last()
-                db.compare(self.rqh.pgs+self.rqh.pgs[1].pgs)
-                db.insert(self.rqh.pgs+self.rqh.pgs[1].pgs)
+                lst = []
+                for i in self.rqh.pgs:
+                         lst.append(i)
+                         if i.pgs:
+                              lst.extend(i.pgs)
+                                
+                db.compare(lst)
+                db.insert(lst)
                 db.close()
+        
        
 
 #Report generation
 
-def generate_report(loc,sis):
+def generate_report(sis):
 	beg="""
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html lang="en-US" xml:lang="en-US" xmlns="http://www.w3.org/1999/xhtml">
@@ -432,15 +469,13 @@ padding:0px;
 """
        
 	end="</body>\n</html>"
+        lst = [beg]
 
-	f = open(loc,'w')
-        f.write(beg)
-        #print sis.rqh.pgs
 	for i in sis.rqh.pgs:
-        	f.write(i.report())
+        	lst.append(i.report())
 
-	f.write(end)
-	f.close()
+	lst.append(end)
+	return '\n'.join(lst)
 
        
                 
@@ -464,11 +499,17 @@ if __name__ == '__main__':
                 setattr(parser.values, option.dest, value)
 
 
-        parser = OptionParser(usage="%prog -f FILE -p FILE",version="%prog 0.2",description="Generate a report file using sis.Run without arguments for prompt mode.")
+        parser = OptionParser(usage="%prog -f FILE -p FILE",version="%prog 0.2a",description="Generate a report file using sis.Run without arguments for prompt mode.")
 
         parser.add_option('-r','--report',dest='filename',
                         action="callback",callback=check_loc,type="string",
                             help='write report to FILE',metavar='FILE')
+
+        parser.add_option("-o", "--output",
+                  action="store_true", dest="output", default=False,
+                  help="write the report to stdout")
+
+
         group = optparse.OptionGroup(parser, "Userdetails file",
                     "Format of file , the userdetails seperated by ':' on different lines "
                      )
@@ -481,30 +522,48 @@ if __name__ == '__main__':
      
 
         (options, args) = parser.parse_args()
-        
-               
         det = {}
         loc = ''
         import getpass
+        if options.output:
+                import sys
+                STDOUT = options.output
+                try:
+                   
+                   det['username'] = raw_input('Username : ')
+                   det['password'] = getpass.getpass('Password : ')
+                   
+                   sis = SIS(RequestHandler(),det)
+                   sis.get_all_plain()
+                   print generate_report(sis)
+                    
+                except IndexError:
+                        parser.error("You need to enter username and password")
+                except EOFError:
+                        parser.error("EOF Error")
+                finally:
+                        raise SystemExit
+                
+               
+       
         for i in options.__dict__:
                 if not options.__dict__[i]:
                         while not os.path.exists(os.path.dirname(loc)) or os.path.isdir(loc):
                                 print "Enter the required details"
-                                det['username'] = raw_input('Username : ')
-                        
-                                det['password'] = getpass.getpass('Password : ')
-                                loc = raw_input('Location : ')
+                                try:
+                                        det['username'] = raw_input('Username : ')
+                                        det['password'] = getpass.getpass('Password : ')
+                                        loc = raw_input('Location : ')
+                                except EOFError:
+                                        parser.error("EOF Error")
                         break
                         
         if not det:                
                 det = parse_file(options.userfile)
                 loc = options.filename
-                        
-    
+                            
         sis = SIS(RequestHandler(),det)
         sis.get_all()
-        generate_report(loc,sis)
+        open(loc,'w').write(generate_report(sis))
 
 
-
-         

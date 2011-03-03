@@ -15,6 +15,7 @@ Options:
   -h, --help            show this help message and exit
   -r FILE, --report=FILE
                         write report to FILE
+  -o, --output          write the report to stdout
 
   Userdetails file:
     Format of file , the userdetails seperated by ':' on different lines
@@ -24,9 +25,8 @@ Options:
 
 
 ##TODO
-# - Correct issues with certain subject tables 
-# - Display error when the sis page does not display data
-#
-#
+ - Correct issues with certain subject tables 
+
+
 
 

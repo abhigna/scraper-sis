@@ -1,10 +1,9 @@
 #!/usr/bin/env python
 # Author : Abhigna N
-# Copyright (c) 2011, Abhigna N
+# Copyright (c) 2012, Abhigna N
 # http://www.opensource.org/licenses/bsd-license.php
 # Version 0.2
 # Tool which generates a simple html report file
-
 
 
 import re,urllib2,threading
@@ -79,7 +78,7 @@ def gen_table(th,ar,rowa,rowb,caption=None,date=None,changed=False):
 #Pages definition
 
 def login(details):
-        url = 'http://202.122.21.12:8102/servlet/SIS'
+        url = 'http://180.151.33.136:8102/servlet/SIS'
         data ='txtModule=login&txtHandler=loginHandler&txtAction=login&txtSubAction=Submit&txtUserName=%(username)s&txtPassword=%(password)s&Submit=Submit'
         req = urllib2.Request(url,data % details)
        	resp = urllib2.urlopen(req)
@@ -94,7 +93,7 @@ def login(details):
         
        
 def logout(cookie):
-        url = 'http://202.122.21.12:8102/servlet/com.manvish.common.RoutingServlet?txtModule=login&txtHandler=loginHandler&txtAction=login&txtSubAction=logout&mainTaskCode=115&txtLogins=0'
+        url = 'http://180.151.33.136:8102/servlet/com.manvish.common.RoutingServlet?txtModule=login&txtHandler=loginHandler&txtAction=login&txtSubAction=logout&mainTaskCode=115&txtLogins=0'
         rql = urllib2.Request(url)
         rql.add_header('Cookie',cookie)
         rsl = urllib2.urlopen(rql)
@@ -116,7 +115,7 @@ class Page(object):
 
 
 class AttendancePage(Page):
-        url = 'http://202.122.21.12:8102/servlet/com.manvish.common.RoutingServlet?txtModule=tasksHandler&txtHandler=acdStdAttViewHndlr&txtAction=ListPage&txtSubAction=ViewList'
+        url = 'http://180.151.33.136:8102/servlet/com.manvish.common.RoutingServlet?txtModule=tasksHandler&txtHandler=acdStdAttViewHndlr&txtAction=ListPage&txtSubAction=ViewList'
 
         name = 'Attendance'
         pat = re.compile(r'InnerTableContent\">(.+?)</td>',re.MULTILINE | re.DOTALL)
@@ -130,7 +129,7 @@ class AttendancePage(Page):
                                 self.data,"row-a","row-b",caption="Attendance",date=self.ltime,changed=self.changed)
 
 class TimeTablePage(Page):
-        url = 'http://202.122.21.12:8102/servlet/com.manvish.common.RoutingServlet?txtModule=academic&txtHandler=academicTimeTableStudentViewHandler&txtAction=ListPage&txtSubAction=View&txtType=N' 
+        url = 'http://180.151.33.136:8102/servlet/com.manvish.common.RoutingServlet?txtModule=academic&txtHandler=academicTimeTableStudentViewHandler&txtAction=ListPage&txtSubAction=View&txtType=N' 
         name = 'Timetable'
         data = None 
         f0 = re.compile(r"<td width=(.+?)</td>",re.DOTALL| re.MULTILINE ) 
@@ -148,7 +147,7 @@ class TimeTablePage(Page):
 
   
 class MarksTablePage(Page):
-        url = 'http://202.122.21.12:8102/servlet/com.manvish.common.RoutingServlet?txtModule=tasksHandler&txtHandler=acdStdMrkViewHndlr&txtAction=ListPage&txtSubAction=ViewList'
+        url = 'http://180.151.33.136:8102/servlet/com.manvish.common.RoutingServlet?txtModule=tasksHandler&txtHandler=acdStdMrkViewHndlr&txtAction=ListPage&txtSubAction=ViewList'
 
         name = 'MarksTable'
         
@@ -213,7 +212,7 @@ class MarksTablePage(Page):
 
 
 class SubjectPage(Page):
-        url ='http://202.122.21.12:8102/servlet/com.manvish.common.RoutingServlet?txtModule=academic&txtHandler=acdStdMrkViewHndlr&txtAction=ListPage&txtSubAction=View&hidSbjCode=%(sbjcode)s&hidSbjName=%(sbjname)s&loginCode=%(logincode)s&studentCode=%(studentcode)s'
+        url ='http://180.151.33.136:8102/servlet/com.manvish.common.RoutingServlet?txtModule=academic&txtHandler=acdStdMrkViewHndlr&txtAction=ListPage&txtSubAction=View&hidSbjCode=%(sbjcode)s&hidSbjName=%(sbjname)s&loginCode=%(logincode)s&studentCode=%(studentcode)s'
         data = None 
         pat = re.compile(r'InnerTableContent".*?>(.+?)</td>')
         name = None
